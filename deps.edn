@@ -1,0 +1,2 @@
+{:deps
+ {metasoarous/oz {:mvn/version "1.6.0-alpha34"}}}
