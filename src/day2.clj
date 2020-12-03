@@ -1,6 +1,7 @@
 (ns day2
   (:require [clojure.string :as str]
-            [clojure.test :as test]))
+            [clojure.test :as test]
+            [criterium.core :as crit]))
 
 
 (test/with-test
@@ -74,5 +75,10 @@
 
 
 (comment
-  (test/run-tests))
+  (test/run-tests)
+  (part1 data)
+  (part2 data)
+  (crit/bench (part1 data))
+  (crit/bench (part2 data)))
+  
   
