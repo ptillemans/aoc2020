@@ -68,11 +68,13 @@ acc +6")
 
 (defn run-program-with-log
   [program]
-  (let [end (len program)]
+  (let [end (count program)]
     (->> start-state
-         (iterate #(interprete-with-log (nth program (:pc %)) %))
-         (take-while #(not (contains? (:log %) (:pc %))))
-         (take-while #(< (:pc %) end)))))
+         (iterate
+          #(if (< (:pc %) end)
+             (interprete-with-log (nth program (:pc %)) %)
+             (log-location %)))
+         (take-while #(not (contains? (:log %) (:pc %)))))))
          
 
 (test/with-test
@@ -84,7 +86,7 @@ acc +6")
       
          
 
-  (test/is (= 5 (part1 test-input))))
+  (test/is (= 5 (:acc (part1 test-input)))))
 
 (defn is-jump?
   [[cmd _arg]]
@@ -97,10 +99,9 @@ acc +6")
       (->> (range end)
            (filter #(is-jump? (nth program %)))
            (map #(assoc program % [:nop 0]))
-           (map #(last (run-program-with-log %))))))
-  (comment
-           (drop-while #(< end (:pc %)))
-           first)
+           (map #(last (run-program-with-log %)))
+           (drop-while #(< (:pc %) end))
+           first)))
       
 
   (test/is (= 8 (:acc (part2 test-input)))))
