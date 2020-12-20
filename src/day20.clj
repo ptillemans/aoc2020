@@ -243,17 +243,9 @@ Tile 3079:
   (->> (vals tile-map)
        (filter #(= 2 (count (apply set/union (:side-matches %)))))))
 
-(defn find-topleft-tile
-  [tile-map]
-  (->> tile-map
-       find-corner-tiles
-       first
-       (iterate rotate-tile)
-       (take 4)
-       (drop-while #(let [sides (:side-matches %)]
-                       (or (empty? (nth sides 1))
-                           (empty? (nth sides 2)))))
-       first))
+(defn rotate-vec
+  [v]
+  (conj (subvec v 1) (v 0)))
 
 (defn flip-tile
   [tile]
@@ -267,10 +259,6 @@ Tile 3079:
                                    (reverse-side-id (% 1))))
         (update :side-matches #(vector (% 0) (% 3) (% 2) (% 1)))
         (update :lines #(map (comp str/join reverse) %)))))
-
-(defn rotate-vec
-  [v]
-  (conj (subvec v 1) (v 0)))
 
 (defn rotate-lines
   [lines]
@@ -287,7 +275,7 @@ Tile 3079:
 
 (defn flip-tile-if-needed
   [side-id tile]
-  (if (contains? (set (:side-ids tile)) side-id)
+  (if (contains? (set (:side-ids tile)) (reverse-side-id side-id))
     tile
     (flip-tile tile)))
 
@@ -296,7 +284,7 @@ Tile 3079:
   (->> tile
        (iterate rotate-tile)
        (take 4)
-       (drop-while #(not= (nth (:side-ids %) side) side-id))
+       (drop-while #(not= (nth (:side-ids %) side) (reverse-side-id side-id)))
        first))
 
 (defn align-side
@@ -304,6 +292,18 @@ Tile 3079:
   (->> tile
        (flip-tile-if-needed side-id)
        (rotate-till-side-aligns side-id side)))
+
+(defn find-topleft-tile
+  [tile-map]
+  (->> tile-map
+       find-corner-tiles
+       first
+       (iterate rotate-tile)
+       (take 4)
+       (drop-while #(let [sides (:side-matches %)]
+                       (or (empty? (nth sides 1))
+                           (empty? (nth sides 2)))))
+       first))
 
 (defn tile-to-side
   [tiles side tile]
@@ -329,6 +329,18 @@ Tile 3079:
     (for [cell left-col]
       (tiles-to-side tiles 1 cell))))
 
+(defn extract-map-from-linked-neighbors
+  [linked-neighbors]
+  (->>
+    (for [row linked-neighbors]
+        (->> row
+            (map :lines)
+            (apply map vector)
+            (drop 1)
+            (take 8)
+            (map (fn [row] (str/join (map #(.substring % 1 9) row))))))
+    flatten))
+
 (test/with-test
   (defn part1 [inpt]
     (->> input
@@ -341,7 +353,9 @@ Tile 3079:
 
 (test/with-test
   (defn part2 [input]
-    (->> input))
+    (->> input
+         prepare-data
+         link-neighbors))
 
   (test/is (= test-input (part2 test-input))))
 
@@ -356,9 +370,6 @@ Tile 3079:
   (def test-data (prepare-data test-input))
   (def test-tile (first (vals test-data)))
   (def test-tile-lines (:lines test-tile))
-  (def test-tile-map (tile-map test-data))
-  (def test-sim (side-id-map test-data))
-  (def test-rsim (->> test-sim (map (fn [[k v]] [(reverse-side-id k) v])) (into {})))
   (def part1-data (prepare-data input))
 
   (def top-left-tile (find-topleft-tile test-data)))
