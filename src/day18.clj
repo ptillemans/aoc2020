@@ -73,7 +73,7 @@
     (condp = token
       :open (let [[term tokens] (eval-expr expr)]
               [term (rest tokens)])
-      [token expr])))
+        [token expr])))
 
 
 (defn eval-factor
