@@ -249,16 +249,14 @@ Tile 3079:
 
 (defn flip-tile
   [tile]
-  (do
-    (println tile)
-    (-> tile
-        (update :flipped not)
-        (update :side-ids #(vector (reverse-side-id (% 0))
-                                   (reverse-side-id (% 3))
-                                   (reverse-side-id (% 2))
-                                   (reverse-side-id (% 1))))
-        (update :side-matches #(vector (% 0) (% 3) (% 2) (% 1)))
-        (update :lines #(map (comp str/join reverse) %)))))
+  (-> tile
+      (update :flipped not)
+      (update :side-ids #(vector (reverse-side-id (% 0))
+                                 (reverse-side-id (% 3))
+                                 (reverse-side-id (% 2))
+                                 (reverse-side-id (% 1))))
+      (update :side-matches #(vector (% 0) (% 3) (% 2) (% 1)))
+      (update :lines #(map (comp str/join reverse) %))))
 
 (defn rotate-lines
   [lines]
@@ -329,7 +327,7 @@ Tile 3079:
     (for [cell left-col]
       (tiles-to-side tiles 1 cell))))
 
-(defn extract-map-from-linked-neighbors
+(defn extract-image-from-linked-neighbors
   [linked-neighbors]
   (->>
     (for [row linked-neighbors]
@@ -341,8 +339,80 @@ Tile 3079:
             (map (fn [row] (str/join (map #(.substring % 1 9) row))))))
     flatten))
 
+
+(def nessie (->> "                  # 
+#    ##    ##    ###
+ #  #  #  #  #  #   "
+                 str/split-lines))
+
+(defn print-image
+  [image]
+  (doseq [line image]
+    (println line)))
+
+(defn rotate-image
+  [image]
+  (->> image
+       (apply mapv vector)
+       (map str/join)
+       reverse))
+
+(defn flip-image
+  [image]
+  (->> image
+       (map reverse)
+       (map str/join)))
+
+(defn find-monsters-in-image
+  [monster image]
+  (let [h_monster (count monster)
+        w_monster (count (first monster))
+        h_image   (count image)
+        w_image   (count (first image))
+        img       (vec image)
+        patterns  (map #(re-pattern (str/replace % " " ".")) monster)]
+    (for [row (range (- h_image (dec h_monster)))
+          :let [lines (take h_monster (drop row img))]
+          col (range (- h_image (dec w_monster)))
+          :let [windows (map #(.substring % col (+ col w_monster)) lines)]
+          :when (every? identity (mapv #(re-find %1 %2) patterns windows))]
+     [row, col]))) 
+      
+(defn find-monsters
+  [monster image]
+  (->> (concat
+        (take 4 (iterate rotate-image image))
+        (take 4 (iterate rotate-image (flip-image image))))
+       (map #(vector % (find-monsters-in-image monster %)))
+       (remove #(empty? (second %)))
+       first))
+
+(defn mark-monster
+  [img [y x]]
+  
+  (update (vec img) y
+          #(str (subs % 0 x)
+                "O"
+                (subs % (inc x)))))
+
+(defn remove-monster
+  [monster image [x y]]
+  (->>
+    (for [r (range (count monster))
+            :let [line (nth monster r)]
+            c (range (count (first monster)))
+            :when (= \# (nth line c))]
+      [(+ x r) (+ y c)])
+    (reduce mark-monster image)))
+
+  
+
+(defn remove-monsters
+  [monster [image locations]]
+  (reduce (partial remove-monster monster) image locations)) 
+
 (test/with-test
-  (defn part1 [inpt]
+  (defn part1 [input]
     (->> input
          prepare-data
          find-corner-tiles
@@ -351,13 +421,25 @@ Tile 3079:
 
   (test/is (=  20899048083289  (part1 test-input))))
 
+(defn count-pixels
+  [img]
+  (count
+    (for [row img
+            c  row
+            :when (= c \#)]
+      1)))
+  
 (test/with-test
   (defn part2 [input]
     (->> input
          prepare-data
-         link-neighbors))
+         link-neighbors
+         extract-image-from-linked-neighbors
+         (find-monsters nessie)
+         (remove-monsters nessie)
+         count-pixels))
 
-  (test/is (= test-input (part2 test-input))))
+  (test/is (= 273 (part2 test-input))))
 
 (comment
   (test/run-tests)
