@@ -1,5 +1,9 @@
 {:deps
  {metasoarous/oz {:mvn/version "1.6.0-alpha34"}
   criterium/criterium {:mvn/version "0.4.6"}
-  org.clojure/math.combinatorics {:mvn/version "0.1.6"}}}
+  org.clojure/math.combinatorics {:mvn/version "0.1.6"}}
+ :aliases
+ {:test {:extra-deps {speclj {:mvn/version "3.3.2"}}
+         :extra-paths ["spec"]
+         :main-opts ["-m" "speclj.cli" "-c"]}}}
 
