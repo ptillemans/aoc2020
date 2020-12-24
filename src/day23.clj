@@ -2,22 +2,19 @@
   (:require [criterium.core :as crit]
             [clojure.string :as str]
             [clojure.test :as test]
-            [clojure.set :as set]))
+            [clojure.set :as set]
+            [clojure.pprint :as pp]))
 
 (def input
   "318946572")
+
+(def test-input
+  "389125467")
 
 (defn parse-input [input]
   (->> input
        (#(str/split % #""))
        (mapv #(Integer/parseInt %))))
-
-(defn cup-dec [n & {:keys [exclude]
-                    :or {exclude #{}}}]
-  (let [result (inc (mod (- n 2) 9))]
-    (if (contains? exclude result)
-      (cup-dec result :exclude exclude)
-      result)))
 
 (defn rotate-right
   [xs]
@@ -30,35 +27,47 @@
        (map vector (rotate-right cups))
        sort
        (map second)
-       (map int)
        (map dec)
-       (into-array)))
+       (map int)
+       int-array))
 
 
 (defn round
-  [na current]
-  (let [t1  (aget na current)
-        t2  (aget na t1)
-        t3  (aget na t2)
-        destination (cup-dec current :exclude #{t1 t2 t3})]
-    (aset na current (aget na t3))
-    (aset na t3 (aget na destination))
-    (aset na destination t1)
-    (aget na current)))
+  [na size current]
+  ;;(println "Current : " current)
+  (let [t1  (aget ^ints na current)
+        t2  (aget ^ints na t1)
+        t3  (aget ^ints na t2)
+        destination (->>
+                     (iterate #(if (zero? %) (dec size) (dec %)) current)
+                     (filter #(and (not= % t1) (not= % t2) (not= % t3)))
+                     second)]
+    ;;(println "Pick : " t1 t2 t3)
+    ;;(println "Destination : " destination)
+    ;;(pp/pprint na)
+    (aset ^ints na current (aget ^ints na t3))
+    ;;(pp/pprint na)
+    (aset ^ints na t3 (aget ^ints na destination))
+    ;;(pp/pprint na)
+    (aset ^ints na destination t1)
+    ;;(pp/pprint na)
+    ;;(println "return: " (aget ^ints na current))
+    (aget ^ints na current)))
 
 (defn into-cups
   [na current]
   (->>
-   (iterate #(aget na %) current)
+   (iterate #(aget na %) (dec current))
    (map inc)
    (take (alength na))))
 
 (defn game
   [n cups]
   (let [na (next-array cups)
-        start (first cups)]
+        size (count na)
+        start (dec (first cups))]
     (->> start
-         (iterate #(round na %))
+         (iterate #(round na size %))
          (drop n)
          first)
     (into-cups na 1)))
@@ -87,6 +96,10 @@
          (concat cups)
          (take 1000000))))
 
+(def test-cups (->> test-input
+                    parse-input
+                    cups2))
+                    
 (defn part2 [input]
   (let [results (->> input
                   parse-input

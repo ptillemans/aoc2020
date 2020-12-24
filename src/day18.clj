@@ -8,6 +8,8 @@
 (def input
   (slurp "./input/day18.txt"))
 
+(def test-input "1 + (2 * 3) + (4 * (5 + 6))")
+
 (defn tokenize
   [s]
   (->> (replace {"+" :plus "*" :mul "(" :open ")" :close}
@@ -58,7 +60,7 @@
          (map first)
          (reduce +)))
 
-  (test/is (= (part1 test-input))))
+  (test/is (= 51 (part1 test-input))))
 
 
 ;; expr ::= factor [:mul factor]*
